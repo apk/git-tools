@@ -1,0 +1,28 @@
+#!/bin/sh
+
+force='echo'
+if test X"$1" = X-f; then
+    force=''
+fi
+
+now=`date +%s`
+
+git branch --merged HEAD -a | sed -ne 's,^. remotes/origin/,,p' | grep -v ' ' | while read name; do
+    id=`git rev-parse remotes/origin/$name`
+    ts=`git --no-pager log -1 --format='%at' $id`
+    ts=`expr $now - $ts`
+    if test $ts -gt 6000000; then
+	git --no-pager log -1 $id --format='%ad [%an] %s'
+	$force git push origin :$name
+    fi
+done
+
+git branch --merged HEAD | sed -ne 's,^  ,,p' | grep -v ' ' | while read name; do
+    id=`git rev-parse $name`
+    ts=`git --no-pager log -1 --format='%at' $id`
+    ts=`expr $now - $ts`
+    if test $ts -gt 3000000; then
+	git --no-pager log -1 $id --format='%ad [%an] %s'
+	$force git branch -d $name
+    fi
+done
