@@ -1,0 +1,52 @@
+#!/bin/sh
+
+new_name='Andreas Krey'
+new_email='a.krey@gmx.de'
+
+for i; do
+    arg="`expr X"$i" : '[^=]*=\(.*\)'`"
+    case "$i" in
+	email=*)
+	    new_email="$arg"
+	    ;;
+	old=*)
+	    old_email="$arg"
+	    ;;
+	name=*)
+	    new_name="$arg"
+	    ;;
+	*=*)
+	    echo error: unknown key in "$i"
+	    exit 1
+	    ;;
+	*@*)
+	    old_email="$i"
+	    ;;
+	*)
+	    echo "Bad arg '$i'"
+	    exit 1
+	    ;;
+    esac
+done
+
+if test X"$old_email" = X; then
+    echo error: no old email addr given
+    exit 1
+fi
+
+echo "$old_email => $new_name <$new_email>"
+
+exit
+
+exec git filter-branch --env-filter '
+if [ "$GIT_COMMITTER_EMAIL" = "'"$old_email"'" ]
+then
+    export GIT_COMMITTER_NAME="'"$new_email"'"
+    export GIT_COMMITTER_EMAIL="'"$new_name"'"
+fi
+if [ "$GIT_AUTHOR_EMAIL" = "'"$old_email"'" ]
+then
+    export GIT_AUTHOR_NAME="'"$new_email"'"
+    export GIT_AUTHOR_EMAIL="'"$new_name"'"
+fi
+' --tag-name-filter cat -- --branches --tags
