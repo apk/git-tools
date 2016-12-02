@@ -7,22 +7,29 @@ fi
 
 now=`date +%s`
 
-git branch --merged HEAD -a | sed -ne 's,^. remotes/origin/,,p' | grep -v ' ' | while read name; do
-    id=`git rev-parse remotes/origin/$name`
-    ts=`git --no-pager log -1 --format='%at' $id`
-    ts=`expr $now - $ts`
-    if test $ts -gt 6000000; then
-	git --no-pager log -1 $id --format='%ad [%an] %s'
-	$force git push origin :$name
-    fi
-done
-
-git branch --merged HEAD | sed -ne 's,^  ,,p' | grep -v ' ' | while read name; do
-    id=`git rev-parse $name`
-    ts=`git --no-pager log -1 --format='%at' $id`
-    ts=`expr $now - $ts`
-    if test $ts -gt 3000000; then
-	git --no-pager log -1 $id --format='%ad [%an] %s'
-	$force git branch -d $name
+(
+    git branch --merged HEAD -a | sed -ne 's,^. remotes/origin/,,p' | grep -v ' ' | while read name; do
+	id=`git rev-parse remotes/origin/$name`
+	ts=`git --no-pager log -1 --format='%at' $id`
+	ts=`expr $now - $ts`
+	echo $ts $id $name origin
+    done
+    git branch --merged HEAD | sed -ne 's,^  ,,p' | grep -v ' ' | while read name; do
+	id=`git rev-parse $name`
+	ts=`git --no-pager log -1 --format='%at' $id`
+	ts=`expr $now - $ts`
+	echo $ts $id $name local
+    done
+) | sort -n -r | while read ts id name where rest; do
+    if test $ts -gt 300000; then
+	git --no-pager log -1 $id --format='# %ad [%an] %s'
+	case "$where" in
+	    origin)
+		$force git push origin :$name
+		;;
+	    local)
+		$force git branch -d $name
+		;;
+	esac
     fi
 done
